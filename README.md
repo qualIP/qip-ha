@@ -9,6 +9,13 @@ qualIP Home Assistant stuff
 - [Exterior security light control](blueprints/exterior-security-light-control.yaml)
 
 
+## Kymera Wand
+
+![Product image of Kymera Wand](kymera-wand/Kymera-Wand-horizontal.jpg)
+
+[Read more about the Kymera Wand](kymera-wand/README.md)
+
+
 # Donations
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/biz/fund?id=4CZC3J57FXJVE)

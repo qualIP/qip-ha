@@ -1,0 +1,137 @@
+blueprint:
+  name: Kymera Wand
+  description: Configure all Kymera Wand actions for an IR sensor
+  domain: automation
+  source_url: https://github.com/qualIP/qip-ha/raw/branch/main/kymera-wand/kymera-wand-blueprint.yaml
+
+  input:
+    sensor_ir_command:
+      name: Kymera Wand IR (commmand text sensor)
+      selector:
+        entity:
+          filter:
+            - domain: sensor
+          # device:
+          #   - manufacturer: Espressif
+
+    action_rotate_anticlockwise:
+      name: "Action: Rotate Anticlockwise"
+      description: Action to run on Rotate Anticlockwise motion
+      default: []
+      selector:
+        action: {}
+    action_rotate_clockwise:
+      name: "Action: Rotate Clockwise"
+      description: Action to run on Rotate Clockwise motion
+      default: []
+      selector:
+        action: {}
+    action_flick_upwards:
+      name: "Action: Flick Upwards"
+      description: Action to run on Flick Upwards motion
+      default: []
+      selector:
+        action: {}
+    action_flick_downwards:
+      name: "Action: Flick Downwards"
+      description: Action to run on Flick Downwards motion
+      default: []
+      selector:
+        action: {}
+    action_flick_left:
+      name: "Action: Flick Left"
+      description: Action to run on Flick Left motion
+      default: []
+      selector:
+        action: {}
+    action_flick_right:
+      name: "Action: Flick Right"
+      description: Action to run on Flick Right motion
+      default: []
+      selector:
+        action: {}
+    action_tap_on_top:
+      name: "Action: Tap On Top"
+      description: Action to run on Tap On Top motion
+      default: []
+      selector:
+        action: {}
+    action_tap_on_side:
+      name: "Action: Tap On Side"
+      description: Action to run on Tap On Side motion
+      default: []
+      selector:
+        action: {}
+    action_big_swish:
+      name: "Action: Big Swish"
+      description: Action to run on Big Swish motion
+      default: []
+      selector:
+        action: {}
+    action_push_forward:
+      name: "Action: Push Forward"
+      description: Action to run on Push Forward motion
+      default: []
+      selector:
+        action: {}
+    action_double_tap_on_top:
+      name: "Action: Double Tap On Top"
+      description: Action to run on Double Tap On Top motion
+      default: []
+      selector:
+        action: {}
+    action_double_tap_on_side:
+      name: "Action: Double Tap On Side"
+      description: Action to run on Double Tap On Side motion
+      default: []
+      selector:
+        action: {}
+    action_pull_back:
+      name: "Action: Pull Back"
+      description: Action to run on Pull Back motion
+      default: []
+      selector:
+        action: {}
+
+mode: parallel
+
+trigger:
+  - platform: state
+    entity_id: !input sensor_ir_command
+    not_to: ""
+
+variables:
+  sensor_ir_command: !input sensor_ir_command
+
+action:
+  - service: system_log.write
+    data_template:
+      level: error
+      message: "to_state = {{trigger.to_state.state}}"
+  - choose:
+      - conditions: "{{ trigger.to_state.state == 'Rotate anticlockwise' }}"
+        sequence: !input action_rotate_anticlockwise
+      - conditions: "{{ trigger.to_state.state == 'Rotate clockwise' }}"
+        sequence: !input action_rotate_clockwise
+      - conditions: "{{ trigger.to_state.state == 'Flick upwards' }}"
+        sequence: !input action_flick_upwards
+      - conditions: "{{ trigger.to_state.state == 'Flick downwards' }}"
+        sequence: !input action_flick_downwards
+      - conditions: "{{ trigger.to_state.state == 'Flick left' }}"
+        sequence: !input action_flick_left
+      - conditions: "{{ trigger.to_state.state == 'Flick right' }}"
+        sequence: !input action_flick_right
+      - conditions: "{{ trigger.to_state.state == 'Tap on top' }}"
+        sequence: !input action_tap_on_top
+      - conditions: "{{ trigger.to_state.state == 'Tap on side' }}"
+        sequence: !input action_tap_on_side
+      - conditions: "{{ trigger.to_state.state == 'Big swish' }}"
+        sequence: !input action_big_swish
+      - conditions: "{{ trigger.to_state.state == 'Push forward' }}"
+        sequence: !input action_push_forward
+      - conditions: "{{ trigger.to_state.state == 'Double tap on top' }}"
+        sequence: !input action_double_tap_on_top
+      - conditions: "{{ trigger.to_state.state == 'Double tap on side' }}"
+        sequence: !input action_double_tap_on_side
+      - conditions: "{{ trigger.to_state.state == 'Pull back' }}"
+        sequence: !input action_pull_back
