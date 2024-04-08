@@ -1,0 +1,169 @@
+blueprint:
+  name: Exterior security light control
+  description: Control an exterior security light.
+  domain: automation
+  source_url: https://github.com/qualIP/qip-ha/raw/branch/main/blueprints/exterior-security-light-control.yaml
+
+  input:
+    sensor_motion:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+          #device_class:
+          #  - motion
+
+    entity_switch:
+      name: Switch (Optional)
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - switch
+
+    entity_light:
+      name: Light (Optional)
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+    light_brightness_motion:
+      name: Light brightness on motion detected
+      description: Brightness, in night time mode when motion is detected
+      default: 100
+      selector:
+        number:
+          min: 1.0
+          max: 100.0
+          step: 1.0
+          mode: slider
+          unit_of_measurement: "%"
+    light_brightness_night:
+      name: Light brightness on motion not detected
+      description: Brightness, in night time mode when no motion is detected
+      default: 100
+      selector:
+        number:
+          min: 1.0
+          max: 100.0
+          step: 1.0
+          mode: slider
+          unit_of_measurement: "%"
+
+    no_motion_wait:
+      name: Wait time
+      description: Time to leave the light on after last motion is detected.
+      default: 120
+      selector:
+        number:
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          mode: slider
+          step: 1.0
+
+    sunset_offset:
+      name: Offset to turn on lights
+      description: Define offset to sunset
+      default: 60
+      selector:
+        number:
+          min: 0.0
+          max: 240.0
+          unit_of_measurement: minutes
+          mode: slider
+          step: 1.0
+    sunrise_offset:
+      name: Offset to turn off lights
+      description: Define offset to sunrise
+      default: 45
+      selector:
+        number:
+          min: 0.0
+          max: 240.0
+          unit_of_measurement: minutes
+          mode: slider
+          step: 1.0
+
+mode: queued
+max_exceeded: silent
+
+variables:
+  entity_switch: !input entity_switch
+  entity_light: !input entity_light
+
+trigger:
+  - platform: sun
+    event: sunrise
+    offset: !input sunrise_offset
+  - platform: sun
+    event: sunset
+    offset: !input sunset_offset
+  - platform: state
+    entity_id: !input sensor_motion
+    to: "on"
+  - platform: state
+    entity_id: !input sensor_motion
+    to: "off"
+    for:
+      seconds: !input no_motion_wait
+
+action:
+  - if:
+      - condition: sun
+        after: sunrise
+        after_offset: !input sunrise_offset
+        before: sunset
+        before_offset: !input sunset_offset
+    then:
+      # Day time
+      - choose:
+          - conditions: "{{ entity_switch|length > 0 }}"
+            sequence:
+              - service: switch.turn_off
+                target: "{{ entity_switch }}"
+      - choose:
+          - conditions: "{{ entity_light|length > 0 }}"
+            sequence:
+              - service: light.turn_off
+                target: "{{ entity_light }}"
+    else:
+      # Night time
+      - if:
+          - condition: state
+            entity_id: !input sensor_motion
+            state: "off"
+            for:
+              seconds: !input no_motion_wait
+        then:
+          # Night time, no motion detected
+          - choose:
+              - conditions: "{{ entity_switch|length > 0 }}"
+                sequence:
+                  - service: switch.turn_on
+                    target: "{{ entity_switch }}"
+          - choose:
+              - conditions: "{{ entity_light|length > 0 }}"
+                sequence:
+                  - service: light.turn_on
+                    data:
+                      brightness_pct: !input light_brightness_night
+                    target: "{{ entity_light }}"
+        else:
+          # Night time, motion detected
+          - choose:
+              - conditions: "{{ entity_switch|length > 0 }}"
+                sequence:
+                  - service: switch.turn_on
+                    target: "{{ entity_switch }}"
+          - choose:
+              - conditions: "{{ entity_light|length > 0 }}"
+                sequence:
+                  - service: light.turn_on
+                    data:
+                      brightness_pct: !input light_brightness_motion
+                    target: "{{ entity_light }}"
