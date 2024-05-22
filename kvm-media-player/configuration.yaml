@@ -1,0 +1,4 @@
+# Add these to your /config/configuration.yaml file to split into separate files
+input_boolean: !include input_booleans.yaml
+input_select: !include input_selects.yaml
+media_player: !include media_players.yaml

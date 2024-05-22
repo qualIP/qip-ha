@@ -1,0 +1,21 @@
+- platform: universal
+  unique_id: kvm
+  device_class: tv
+  name: KVM
+  attributes:
+    state: input_boolean.kvm_state
+    source: input_select.kvm_source
+    source_list: input_select.kvm_source|options
+  commands:
+    turn_on:
+      service: script.kvm_set_state
+      data:
+        state: "on"
+    turn_off:
+      service: script.kvm_set_state
+      data:
+        state: "off"
+    select_source:
+      service: script.kvm_select_source
+      data:
+        source: "{{ source }}"

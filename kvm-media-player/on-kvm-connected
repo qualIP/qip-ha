@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -euo pipefail
+# set -x
+
+# ~~~~~ Modify these variables to suit your needs ~~~~~
+ha_url=http://homeassistant.local:8123
+# Set the Home Assistant long-lived access token here or point to a file.
+ha_token=""
+ha_token_file=""
+kvm_state_entity="input_boolean.kvm_state"
+kvm_source_entity="input_select.kvm_source"
+kvm_source=1  # The source number of this PC
+# ~~~~~
+
+
+if [[ -n "$ha_token_file" ]] ; then
+    if ! ha_token=$(cat "$ha_token_file") ; then
+        rc=$?
+        echo "Failed to read Home Assistant token file '$ha_token_file'." >&2
+        exit $rc
+    fi
+fi
+
+echo "Turning on $kvm_source_entity..."
+if ! out=$(curl \
+    --no-progress-meter \
+    --fail-with-body \
+    -H "Authorization: Bearer $ha_token" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"entity_id\": \"$kvm_state_entity\"
+    }" \
+    "$ha_url/api/services/input_boolean/turn_on" 2>&1) ; then
+    rc=$?
+    echo "Failed to turn on $kvm_source_entity" >&2
+    echo "Output:" >&2
+    echo "$out" >&2
+    exit $rc
+fi
+
+echo "Selecting $kvm_source_entity option '$kvm_source'..."
+if ! out=$(curl \
+    --no-progress-meter \
+    --fail-with-body \
+    -H "Authorization: Bearer $ha_token" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"entity_id\": \"$kvm_source_entity\",
+        \"option\": \"$kvm_source\"
+    }" \
+    "$ha_url/api/services/input_select/select_option" 2>&1) ; then
+    rc=$?
+    echo "Failed to select option '$kvm_source' on $kvm_source_entity" >&2
+    echo "Output:" >&2
+    echo "$out" >&2
+    exit $rc
+fi

@@ -1,0 +1,9 @@
+# config/input_selects.yaml
+kvm_source:
+  name: KVM source
+  icon: mdi:list-box
+  options:
+    - "1"
+    - "2"
+    - "3"
+    # - "4"  # Not supported by SW223

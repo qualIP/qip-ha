@@ -1,0 +1,7 @@
+[Unit]
+Description=KVM Connected
+
+[Service]
+Type=exec
+RemainAfterExit=true
+ExecStart=/usr/local/bin/on-kvm-connected

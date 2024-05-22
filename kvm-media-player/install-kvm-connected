@@ -1,0 +1,231 @@
+#!/bin/bash
+
+set -euo pipefail
+
+export TMPDIR=${TMPDIR:-/tmp}
+export XDG_CONFIG_HOME=${XDG_CONFIG_HOME:-~/.config}
+
+OPT_HELP=false
+OPT_YES=false
+OPT_INSTALL=true
+PREFIX=/usr/local
+ha_url="http://homeassistant.local:8123"
+ha_token=  # Option must be passed in
+ha_token_file=  # Option must be passed in
+kvm_source=  # Option must be passed in
+kvm_state_entity=input_boolean.kvm_state
+kvm_source_entity=input_select.kvm_source
+
+prog=$(basename "$0")
+
+OUT_TMP="$TMPDIR/$prog.$$.out.tmp"
+cleanup() {
+    set +u
+    [ -f "$OUT_TMP"   ] && rm -f "$OUT_TMP"
+    return 0
+}
+trap "cleanup" 0
+trap "exit 255" 1 2 15
+touch "$OUT_TMP"
+chmod 600 "$OUT_TMP"  # Protect sensitive information such as the HA token
+
+while (( $# )) ; do
+    case "$1" in
+        -h|--help) OPT_HELP=true ; shift 1 ;;
+        -y|--yes) OPT_YES=true ; shift 1 ;;
+
+        --prefix)     PREFIX=$2 ; shift 2 ;;
+        --uninstall)  OPT_INSTALL=false ; shift 1 ;;
+
+        --ha-url)            ha_url=$2 ; shift 2 ;;
+        --ha-token)          ha_token=$2 ; shift 2 ;;
+        --ha-token-file)     ha_token_file=$2 ; shift 2 ;;
+        --kvm-state-entity)  kvm_state_entity=$2 ; shift 2 ;;
+        --kvm-source-entity) kvm_source_entity=$2 ; shift 2 ;;
+        --kvm-source)        kvm_source=$2 ; shift 2 ;;
+
+        --) break ;;
+        -*) echo "Unrecognized option '$1'" >&2 ; exit 1 ;;
+        *) break ;;
+    esac
+done
+
+if $OPT_HELP ; then
+    cat <<EOF
+Usage: $0 \[options...]
+
+    --help, -h           show this help message and exit
+    --yes, -y            assume "yes" as answer to all prompts and run non-interactively{$OPT_YES:+ ($OPT_YES)}
+
+    --prefix PREFIX      install to this location${PREFIX:+ ($PREFIX)}
+    --uninstall          uninstall instead of installing
+
+    --ha-url             Home Assistant URL${ha_url:+ ($ha_url)}
+    --ha-token           Home Assistant API token${ha_token:+ ($ha_token)}
+    --ha-token-file      Home Assistant API token file${ha_token_file:+ ($ha_token_file)}
+    --kvm-source         KVM source number of this PC${kvm_source:+ ($kvm_source)}
+    --kvm-state-entity   KVM state entity${kvm_state_entity:+ ($kvm_state_entity)}
+    --kvm-source-entity  KVM source entity${kvm_source_entity:+ ($kvm_source_entity)}
+
+EOF
+    exit 0
+fi
+
+if (( $# )) ; then
+    echo "Extraneous arguments: $*" >&2
+    exit 1
+fi
+
+if [[ "$USER" != "root" ]] ; then
+    # TODO The service can be specific to a user, but not the udev rules:
+    #      For now, only root is supported.
+    echo "You must be root to install. Please run again with sudo." >&2
+    exit 1
+fi
+
+src_script_file="on-kvm-connected"
+src_udev_file="99-kvm-connected.rules"
+src_service_file="kvm-connected.service"
+dst_script_file="$PREFIX/bin/on-kvm-connected"
+dst_udev_file="/etc/udev/rules.d/99-kvm-connected.rules"
+if [[ "$USER" = "root" ]] ; then
+    systemd_user_opt=
+    dst_service_file="/etc/systemd/system/kvm-connected.service"
+else
+    systemd_user_opt=--user
+    dst_service_file="$XDG_CONFIG_HOME/systemd/user/kvm-connected.service"
+fi
+
+if $OPT_INSTALL ; then
+
+    if [[ -z "$PREFIX" ]] ; then
+        echo "Install prefix not set. Use --prefix option." >&2
+        exit 1
+    fi
+    if ! [[ -d "$PREFIX" ]] ; then
+        echo "Install prefix '$PREFIX' does not exist." >&2
+        exit 1
+    fi
+    if ! [[ -w "$PREFIX" ]] ; then
+        echo "Install prefix '$PREFIX' is not writable by $USER. Use sudo?" >&2
+        exit 1
+    fi
+
+    echo "Install options:"
+    echo "  --ha-url             $ha_url"
+    echo "  --ha-token           ${ha_token:+(redacted)}"
+    echo "  --ha-token-file      $ha_token_file"
+    echo "  --kvm-state-entity   $kvm_state_entity"
+    echo "  --kvm-source-entity  $kvm_source_entity"
+    echo "  --kvm-source         $kvm_source"
+    echo
+    if [[ -z "$ha_url" ]] ; then
+        echo "Home Assistant URL not set. Use --ha-url." >&2
+        exit 1
+    fi
+    if [[ -z "$ha_token" ]] && [[ -z "$ha_token_file" ]] ; then
+        echo "Home Assistant API token not set. Use --ha-token or --ha-token-file." >&2
+        echo "Information to create long-lived access tokens can be found in Home Assistant's developers documentation:" >&2
+        echo "  https://developers.home-assistant.io/docs/auth_api/#long-lived-access-token" >&2
+        exit 1
+    fi
+    if [[ -n "$ha_token" ]] && [[ -n "$ha_token_file" ]] ; then
+        echo "Home Assistant API token and token file both set. Use only one of --ha-token and --ha-token-file." >&2
+        exit 1
+    fi
+    if [[ -z "$kvm_state_entity" ]] ; then
+        echo "KVM state entity not set. Use --kvm-state-entity." >&2
+        exit 1
+    fi
+    if [[ -z "$kvm_source_entity" ]] ; then
+        echo "KVM source entity not set. Use --kvm-source-entity." >&2
+        exit 1
+    fi
+    if [[ -z "$kvm_source" ]] ; then
+        echo "KVM source number not set. Use --kvm-source." >&2
+        exit 1
+    fi
+
+    if ! $OPT_YES ; then
+        echo "Ready to install..."
+        printf "Continue? [Y/n] "
+        answer=$(read -r)
+        case "${answer:0:1}" in
+            y|Y|"") : ;;
+            *) echo Exiting. ; exit 0 ;;
+        esac
+        echo
+    fi
+
+    echo "Installing script..."
+    mkdir -vp "$(dirname "$dst_script_file")"
+    sed -e "
+        s@^ha_url=.*@ha_url=\"${ha_url//@/\@}\"@
+        s@^ha_token=.*@ha_token=\"${ha_token//@/\@}\"@
+        s@^ha_token_file=.*@ha_token_file=\"${ha_token_file//@/\@}\"@
+        s@^kvm_state_entity=.*@kvm_state_entity=\"${kvm_state_entity//@/\@}\"@
+        s@^kvm_source_entity=.*@kvm_source_entity=\"${kvm_source_entity//@/\@}\"@
+        s@^kvm_source=.*@kvm_source=\"${kvm_source//@/\@}\"@
+        " "$src_script_file" > "$OUT_TMP"
+    if [[ -n "$ha_token" ]] ; then
+        mode=700  # Don't let anybody but root have read access to the token
+    else
+        mode=755
+    fi
+    install -vp -m $mode "$OUT_TMP" "$dst_script_file"
+    echo
+
+    echo "Installing udev rules..."
+    install -vp -m 644 "$src_udev_file" "$dst_udev_file"
+    echo
+
+    echo "Installing service..."
+    if [[ "$USER" == "root" ]] ; then
+        : # The system's service directory should already exist
+    else
+        mkdir -vp "$(dirname "$dst_service_file")"
+    fi
+    sed -e "
+        s@^ExecStart=.*@ExecStart=${dst_script_file//@/\@}@
+        " "$src_service_file" > "$OUT_TMP"
+    install -vp -m 644 "$OUT_TMP" "$dst_service_file"
+    echo
+
+    echo "Reloading systemctl daemon..."
+    systemctl $systemd_user_opt daemon-reload
+    echo
+
+    # echo "Enable the service..."
+    # systemctl $systemd_user_opt enable "$(basename "$dst_service_file")"
+    # # systemctl $systemd_user_opt start "$(basename "$dst_service_file")"
+    # echo
+
+    echo "Reload udev rules..."
+    systemctl reload systemd-udevd.service
+    # udevadm control --reload-rules
+    echo
+
+else
+
+    echo "Stopping the service..."
+    systemctl $systemd_user_opt stop "$(basename "$dst_service_file")" || true
+    echo
+
+    echo "Deleting files..."
+    rm -vf "$dst_script_file"
+    rm -vf "$dst_udev_file"
+    rm -vf "$dst_service_file"
+    echo
+
+    echo "Reloading systemctl daemon..."
+    systemctl $systemd_user_opt daemon-reload
+    echo
+
+    echo "Reload udev rules..."
+    systemctl reload systemd-udevd.service
+    echo
+
+fi
+
+echo DONE
+echo

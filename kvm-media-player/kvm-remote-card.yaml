@@ -1,0 +1,48 @@
+type: custom:config-template-card
+variables:
+  remote_button: |
+    (name, button, icon) => {
+      let obj = {
+        type: 'custom:button-card',
+        show_name: false,
+        show_icon: true,
+        tap_action: {
+          action: 'call-service',
+          service: 'remote.send_command',
+          target: {
+            entity_id: 'remote.broadlink_rf_1',
+          },
+          data: {
+            device: 'CMSTEDCD/VPFET SW22x KVM',
+            command: button,
+            hold_secs: 0.2,
+          },
+        },
+        aspect_ratio: '2/1',
+        name: name,
+        icon: icon,
+        show_state: true,
+        color: 'var(--state-inactive-color)',
+      };
+      return obj;
+    }
+  blank_card:
+    type: custom:button-card
+    color_type: blank-card
+entities: []
+card:
+  type: vertical-stack
+  cards:
+    - type: custom:mushroom-title-card
+      title: KVM Switch
+      alignment: center
+    - type: horizontal-stack
+      cards:
+        - ${remote_button('On', 'On', 'mdi:power-plug')}
+        - ${blank_card}
+        - ${remote_button('Off', 'Off', 'mdi:power-plug-off')}
+    - type: horizontal-stack
+      cards:
+        - ${remote_button('1', '1', 'mdi:numeric-1')}
+        - ${remote_button('2', '2', 'mdi:numeric-2')}
+        - ${remote_button('3', '3', 'mdi:numeric-3')}

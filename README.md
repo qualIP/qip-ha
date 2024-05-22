@@ -16,6 +16,13 @@ qualIP Home Assistant stuff
 [Read more about the Kymera Wand](kymera-wand/README.md)
 
 
+## KVM switch media player
+
+![Image of the media player information dialog](kvm-media-player/kvm-switch-media-player-info.png)
+
+[Read more about the KVM switch media player](kvm-media-player/README.md)
+
+
 # Donations
 
 [![paypal](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/biz/fund?id=4CZC3J57FXJVE)

@@ -1,0 +1,83 @@
+blueprint:
+  name: "KVM: Set state"
+  description: |-
+    Automate tracking of the KVM state and sending the IR commands.
+    Part of qualIP Software's kvm-media-player package.
+  domain: script
+  source_url: https://github.com/qualIP/qip-ha/raw/branch/main/kvm-media-player/kvm-set-state-blueprint.yaml
+
+  input:
+    kvm_state_entity:
+      name: Boolean state entity
+      description: |-
+        The boolean entity used to track the KVM's assumed "state".
+      selector:
+        entity:
+          filter:
+            - domain: input_boolean
+    ir_entity:
+      name: Infrared transmitter/remote entity
+      description: |-
+        The infrared transmitter/remote used to send commands to the KVM.
+      selector:
+        entity:
+          filter:
+            - domain: remote
+    ir_kvm_device_name:
+      name: Name of the KVM device known to the remote device
+      description: |-
+        The infrared transmitter/remote used to send commands to the KVM.
+      default: "CMSTEDCD/VPFET SW22x KVM"
+    ir_hold_secs:
+      name: How long to "hold" the IR commands
+      description: |-
+        Used to make sure the IR commands are sent for a long enough duration otherwise the KVM will miss them.
+      selector:
+        number:
+          min: 0
+          max: 10
+          unit_of_measurement: seconds
+      default: 0.2
+
+mode: restart
+
+fields:
+  state:
+    selector:
+      boolean: {}
+    name: state
+    description: The state to select
+    required: true
+    default: "on"
+
+sequence:
+  - if:
+      - condition: template
+        value_template: "{{ state == 'on' }}"
+      - condition: state
+        entity_id: !input kvm_state_entity
+        state: "on"
+    then: []
+    else:
+      - if:
+          - condition: template
+            value_template: "{{ state == 'on' }}"
+        then:
+          - service: input_boolean.turn_on
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input kvm_state_entity
+        else:
+          - service: input_boolean.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input kvm_state_entity
+      - service: remote.send_command
+        data:
+          device: !input ir_kvm_device_name
+          command: "{{ 'On' if state == 'on' else 'Off' }}"
+          hold_secs: !input ir_hold_secs
+        target:
+          entity_id: !input ir_entity

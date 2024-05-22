@@ -1,0 +1,66 @@
+blueprint:
+  name: "KVM: Select source"
+  description: |-
+    Automate tracking of the KVM source and sending the IR commands.
+    Part of qualIP Software's kvm-media-player package.
+  domain: script
+  source_url: https://github.com/qualIP/qip-ha/raw/branch/main/kvm-media-player/kvm-select-source-blueprint.yaml
+
+  input:
+    kvm_source_entity:
+      name: Selected source entity
+      description: |-
+        The input_select entity used to track the KVM's assumed "source".
+      selector:
+        entity:
+          filter:
+            - domain: input_select
+    ir_entity:
+      name: Infrared transmitter/remote entity
+      description: |-
+        The infrared transmitter/remote used to send commands to the KVM.
+      selector:
+        entity:
+          filter:
+            - domain: remote
+    ir_kvm_device_name:
+      name: Name of the KVM device known to the remote device
+      description: |-
+        The infrared transmitter/remote used to send commands to the KVM.
+      default: "CMSTEDCD/VPFET SW22x KVM"
+    ir_hold_secs:
+      name: How long to "hold" the IR commands
+      description: |-
+        Used to make sure the IR commands are sent for a long enough duration otherwise the KVM will miss them.
+      selector:
+        number:
+          min: 0
+          max: 10
+          unit_of_measurement: seconds
+      default: 0.2
+
+mode: restart
+
+fields:
+  source:
+    selector:
+      text: {}
+    name: source
+    description: The source to select
+    required: true
+
+sequence:
+  - service: input_select.select_option
+    metadata: {}
+    target:
+      entity_id: !input kvm_source_entity
+    data:
+      option: "{{ source }}"
+  - service: remote.send_command
+    metadata: {}
+    data:
+      device: !input ir_kvm_device_name
+      command: "{{ source }}"
+      hold_secs: !input ir_hold_secs
+    target:
+      entity_id: !input ir_entity
