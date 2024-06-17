@@ -6,21 +6,21 @@ qualIP Home Assistant stuff
 
 ## Standalone blueprints
 
-- [Exterior security light control](blueprints/exterior-security-light-control.yaml)
+- 👉 [Exterior security light control](blueprints/exterior-security-light-control.yaml)
 
 
 ## Kymera Wand
 
 ![Product image of Kymera Wand](kymera-wand/Kymera-Wand-horizontal.jpg)
 
-[Read more about the Kymera Wand](kymera-wand/README.md)
+- 👉 [Read more about the Kymera Wand](kymera-wand/README.md)
 
 
 ## KVM switch media player
 
 ![Image of the media player information dialog](kvm-media-player/kvm-switch-media-player-info.png)
 
-[Read more about the KVM switch media player](kvm-media-player/README.md)
+- 👉 [Read more about the KVM switch media player](kvm-media-player/README.md)
 
 
 # Donations
