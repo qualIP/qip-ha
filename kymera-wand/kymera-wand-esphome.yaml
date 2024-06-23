@@ -72,7 +72,8 @@ api:
     key: "TODO"
 
 ota:
-  password: "TODO"
+  - platform: esphome
+    password: "TODO"
 
 wifi:
   use_address: ${name}.local
