@@ -1,0 +1,39 @@
+type: custom:bubble-card
+card_type: media-player
+name: Office KVM
+entity: media_player.kvm
+force_icon: false
+show_name: true
+show_state: true
+show_last_changed: false
+show_attribute: true
+attribute: source
+hide:
+  play_pause_button: true
+  volume_button: true
+  next_button: true
+  power_button: false
+  previous_button: true
+sub_button:
+  - entity: media_player.kvm
+    name: ''
+    show_name: false
+    icon: mdi:numeric-1-box
+    tap_action:
+      action: call-service
+      service: media_player.select_source
+      target:
+        entity_id: media_player.kvm
+      data:
+        source: '1'
+  - entity: media_player.kvm
+    name: ''
+    show_name: false
+    icon: mdi:numeric-2-box
+    tap_action:
+      action: call-service
+      service: media_player.select_source
+      target:
+        entity_id: media_player.kvm
+      data:
+        source: '2'

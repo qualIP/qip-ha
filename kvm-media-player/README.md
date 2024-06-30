@@ -40,6 +40,11 @@ Standard media player card (a bit too flashy for my taste):
 
 ![Image of the Mushroom media player card](./kvm-switch-mushroom-card.png)
 
+[Bubble media player card](https://github.com/Clooos/Bubble-Card#media-player) with sub-buttons (slick and snappy!):
+
+![Image of the Bubble media player card](./kvm-switch-bubble-card.png)
+Code for the Bubble media player card: [kvm-switch-bubble-card.yaml](./kvm-switch-bubble-card.yaml)
+
 Media player information dialog:
 
 ![Image of the media player information dialog](./kvm-switch-media-player-info.png)
